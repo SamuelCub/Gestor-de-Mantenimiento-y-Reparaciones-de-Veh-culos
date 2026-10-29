@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoGest | Taller Mecánico & Reparaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+    <!-- Header Principal -->
+    <header class="app-header">
+        <div class="header-container">
+            <div class="brand">
+                <div class="brand-icon">🔧</div>
+                <div>
+                    <h1>AutoGest Pro</h1>
+                    <p class="subtitle">Panel de Mantenimiento & Control de Taller</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btn-refresh" class="btn btn-secondary" title="Recargar lista">
+                    <span class="icon">🔄</span> Actualizar
+                </button>
+                <button id="btn-open-modal" class="btn btn-primary">
+                    <span class="icon">➕</span> Nueva Orden de Trabajo
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <!-- Dashboard / Métricas Rápidas -->
+        <section class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-title">Total Reparaciones</div>
+                <div class="metric-value" id="metric-total">0</div>
+                <div class="metric-badge">En sistema</div>
+            </div>
+            <div class="metric-card card-pendiente">
+                <div class="metric-title">Pendientes</div>
+                <div class="metric-value" id="metric-pendientes">0</div>
+                <div class="metric-badge badge-pendiente">Por revisar</div>
+            </div>
+            <div class="metric-card card-en-proceso">
+                <div class="metric-title">En Proceso</div>
+                <div class="metric-value" id="metric-en-proceso">0</div>
+                <div class="metric-badge badge-en-proceso">En elevador / taller</div>
+            </div>
+            <div class="metric-card card-terminado">
+                <div class="metric-title">Terminados</div>
+                <div class="metric-value" id="metric-terminadas">0</div>
+                <div class="metric-badge badge-terminado">Listos para entrega</div>
+            </div>
+            <div class="metric-card card-revenue">
+                <div class="metric-title">Facturación Estimada</div>
+                <div class="metric-value" id="metric-coste">0,00 €</div>
+                <div class="metric-badge badge-revenue">Total órdenes</div>
+            </div>
+        </section>
+
+        <!-- Barra de herramientas: Filtros y Búsqueda -->
+        <section class="toolbar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="search-input" placeholder="Buscar por matrícula, cliente o avería..." autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <button class="filter-chip active" data-filter="TODOS">Todos (<span id="count-todos">0</span>)</button>
+                <button class="filter-chip chip-pendiente" data-filter="PENDIENTE">Pendiente (<span id="count-pendientes">0</span>)</button>
+                <button class="filter-chip chip-en-proceso" data-filter="EN_PROCESO">En Proceso (<span id="count-proceso">0</span>)</button>
+                <button class="filter-chip chip-terminado" data-filter="TERMINADO">Terminado (<span id="count-terminadas">0</span>)</button>
+            </div>
+        </section>
+
+        <!-- Tablero / Contenedor de Órdenes -->
+        <section class="orders-section">
+            <div class="section-header">
+                <h2>Órdenes de Trabajo Activas</h2>
+                <div id="loading-spinner" class="spinner hidden"></div>
+            </div>
+
+            <div id="orders-container" class="orders-grid">
+                <!-- Se inyecta dinámicamente con app.js -->
+            </div>
+
+            <!-- Estado Vacío -->
+            <div id="empty-state" class="empty-state hidden">
+                <div class="empty-icon">🚗💨</div>
+                <h3>No se encontraron reparaciones</h3>
+                <p>No hay órdenes registradas con el filtro seleccionado.</p>
+                <button class="btn btn-primary" onclick="document.getElementById('btn-open-modal').click()">Crear Primera Orden</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal para Nueva Orden de Reparación -->
+    <div id="modal-new-repair" class="modal-backdrop hidden">
+        <div class="modal-window">
+            <div class="modal-header">
+                <h3>🛠️ Alta de Reparación / Entrada a Taller</h3>
+                <button id="btn-close-modal" class="btn-close" aria-label="Cerrar modal">&times;</button>
+            </div>
+            
+            <form id="form-reparacion" novalidate>
+                <div class="modal-body">
+                    <!-- Sección Vehículo -->
+                    <div class="form-section-title">1. Identificación del Vehículo</div>
+                    
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="input-matricula">Matrícula <span class="required">*</span></label>
+                            <div class="input-with-button">
+                                <input type="text" id="input-matricula" placeholder="Ej. 1234-KBC" required maxlength="15" uppercase>
+                                <button type="button" id="btn-check-vehiculo" class="btn btn-secondary btn-sm" title="Comprobar si el vehículo ya está registrado">
+                                    🔍 Comprobar
+                                </button>
+                            </div>
+                            <span id="vehiculo-status-badge" class="hint-badge hidden"></span>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="input-fecha">Fecha de Ingreso <span class="required">*</span></label>
+                            <input type="date" id="input-fecha" required>
+                        </div>
+                    </div>
+
+                    <!-- Campos condicionales para vehículo nuevo -->
+                    <div id="seccion-vehiculo-nuevo" class="new-vehicle-box hidden">
+                        <div class="box-badge">Vehículo no registrado previamente - Ingrese sus datos:</div>
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="input-marca">Marca</label>
+                                <input type="text" id="input-marca" placeholder="Ej. SEAT, Toyota, Audi">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="input-modelo">Modelo</label>
+                                <input type="text" id="input-modelo" placeholder="Ej. León 1.6 TDI">
+                            </div>
+                            <div class="form-group" style="max-width: 120px;">
+                                <label for="input-anio">Año</label>
+                                <input type="number" id="input-anio" placeholder="2018" min="1980" max="2030">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group flex-1">
+                                <label for="input-cliente-nombre">Nombre Propietario</label>
+                                <input type="text" id="input-cliente-nombre" placeholder="Ej. Antonio Morales">
+                            </div>
+                            <div class="form-group flex-1">
+                                <label for="input-cliente-telefono">Teléfono</label>
+                                <input type="tel" id="input-cliente-telefono" placeholder="Ej. 611 223 344">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-cliente-email">Email Propietario</label>
+                            <input type="email" id="input-cliente-email" placeholder="cliente@ejemplo.com">
+                        </div>
+                    </div>
+
+                    <!-- Sección Detalles de Reparación -->
+                    <div class="form-section-title">2. Diagnóstico y Coste</div>
+                    <div class="form-group">
+                        <label for="input-descripcion">Descripción de Avería o Servicio <span class="required">*</span></label>
+                        <textarea id="input-descripcion" rows="3" placeholder="Describe los síntomas, averías detectadas o servicios a realizar..." required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group flex-1">
+                            <label for="input-coste">Coste Estimado (€) <span class="required">*</span></label>
+                            <input type="number" id="input-coste" step="0.01" min="0" placeholder="Ej. 180.50" required>
+                        </div>
+                        <div class="form-group flex-1">
+                            <label for="input-estado">Estado Inicial</label>
+                            <select id="input-estado">
+                                <option value="PENDIENTE" selected>🟡 PENDIENTE</option>
+                                <option value="EN_PROCESO">🔵 EN PROCESO</option>
+                                <option value="TERMINADO">🟢 TERMINADO</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Cancelar</button>
+                    <button type="submit" id="btn-submit-repair" class="btn btn-primary">
+                        <span class="btn-spinner hidden"></span> Guardar Orden
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notifications flotantes -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
